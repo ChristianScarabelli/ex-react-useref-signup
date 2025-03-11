@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 
 const initialFormData = {
   username: '',
@@ -23,6 +23,11 @@ export default function App() {
   const fullnameRef = useRef()
   const specsRef = useRef()
   const experienceRef = useRef()
+
+  // Focus all'input fullname al primo render
+  useEffect(() => {
+    fullnameRef.current.focus()
+  }, [])
 
   // Funzione per collegare i change degli inputs
   const handleFormData = (e) => {
@@ -84,7 +89,6 @@ export default function App() {
   // Funzione per il submit del form
   const handleSubmit = (e) => {
     e.preventDefault()
-    const { username, password, description } = formData
     const fullname = fullnameRef.current.value
     const specs = specsRef.current.value
     const experience = experienceRef.current.value
@@ -131,9 +135,27 @@ export default function App() {
     setMessages({})
   }
 
+  // Funzione per il reset del form
+  const handleReset = (e) => {
+    e.preventDefault()
+    setFormData(initialFormData)
+    fullnameRef.current.value = ''
+    specsRef.current.value = 'Select specialization...'
+    experienceRef.current.value = ''
+    setMessages({})
+  }
+
+  // Ref per la sezione
+  const sectionRef = useRef()
+
+  // Funzione per scrollare ad una sezione
+  const scrollToSection = () => {
+    sectionRef.current.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
     <main className="bg-gradient-to-r from-cyan-400 via-blue-200 to-cyan-600 min-h-screen">
-      <div className="container mx-auto py-4">
+      <div ref={sectionRef} className="container mx-auto py-4">
         <h1 className="text-2xl font-bold text-emerald-900">Register here!</h1>
         <section className="my-10 py-3">
           <form className="flex flex-col justify-between gap-4" onSubmit={handleSubmit}>
@@ -242,11 +264,23 @@ export default function App() {
               </span>
             )}
             <button
-              className="text-gray-300 font-bold p-3 rounded-lg mt-5 bg-sky-600"
+              className="cursor-pointer text-gray-300 font-bold p-3 rounded-lg mt-5 bg-sky-600 hover:bg-sky-700"
               type="submit">
               Submit
             </button>
+            <button
+              className="cursor-pointer text-sky-600 font-bold p-3 rounded-lg bg-gray-300 hover:bg-gray-400 self-start"
+              type="reset"
+              onClick={handleReset}
+            >
+              Reset
+            </button>
           </form>
+          <button className="fixed bottom-10 right-10" onClick={scrollToSection}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="h-10 cursor-pointer text-sky-600 hover:text-sky-700">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </button>
         </section>
       </div>
     </main>
