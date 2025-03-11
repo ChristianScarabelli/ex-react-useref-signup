@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 
 const initialFormData = {
   username: '',
@@ -6,20 +6,17 @@ const initialFormData = {
   description: ''
 }
 
+// Variabili per validazioni
+const letters = "abcdefghijklmnopqrstuvwxyz";
+const numbers = "0123456789";
+const symbols = '!@#$%^&*()-_=+[]{}|;:\'\\",.<>?/`~';
+
 export default function App() {
 
-  // Stato per il form
+  // Stato controllato per il form
   const [formData, setFormData] = useState(initialFormData)
-  // Stato per i messaggi di validazione del form
-  const [messages, setMessages] = useState({
-    fullname: '',
-    username: '',
-    password: '',
-    specs: '',
-    experience: '',
-    description: ''
-  })
 
+  // Campi form non controllati
   const fullnameRef = useRef()
   const specsRef = useRef()
   const experienceRef = useRef()
@@ -32,98 +29,63 @@ export default function App() {
   // Funzione per collegare i change degli inputs
   const handleFormData = (e) => {
     const { name, type, value, checked } = e.target
-    const newValue = type === 'checkbox' ? checked : value
     setFormData({
       ...formData,
-      [name]: newValue
-    })
-
-    // Validazione in tempo reale
-    const letters = "abcdefghijklmnopqrstuvwxyz";
-    const numbers = "0123456789";
-    const symbols = '!@#$%^&*()-_=+[]{}|;:\'\\",.<>?/`~';
-
-    let message = ''
-    if (name === 'fullname' && !newValue) {
-      message = 'Full Name is required'
-    } else if (name === 'username') {
-      if (newValue.length < 6) {
-        message = 'Username must be at least 6 characters long'
-      } else if (symbols.split('').some(symbol => newValue.includes(symbol))) {
-        message = 'Username must not contain special characters'
-      } else {
-        message = 'Username is valid'
-      }
-    } else if (name === 'password') {
-      if (newValue.length < 8) {
-        message = 'Password must be at least 8 characters long'
-      } else if (!letters.split('').some(letter => newValue.toLowerCase().includes(letter))) {
-        message = 'Password must contain at least one letter'
-      } else if (!numbers.split('').some(number => newValue.includes(number))) {
-        message = 'Password must contain at least one number'
-      } else if (!symbols.split('').some(symbol => newValue.includes(symbol))) {
-        message = 'Password must contain at least one special character'
-      } else {
-        message = 'Password is valid'
-      }
-    } else if (name === 'specs' && newValue === 'Select specialization...') {
-      message = 'Please select a specialization'
-    } else if (name === 'experience' && (newValue < 0 || newValue === '')) {
-      message = 'Experience must be a positive number'
-    } else if (name === 'description') {
-      if (newValue.length < 100) {
-        message = 'Description must be at least 100 characters long'
-      } else if (newValue.length > 1000) {
-        message = 'Description must be less than 1000 characters long'
-      } else {
-        message = 'Description is valid'
-      }
-    }
-
-    setMessages({
-      ...messages,
-      [name]: message
+      [name]: type === 'checkbox' ? checked : value
     })
   }
+
+  // Validazione username
+  const isUsernameValid = useMemo(() => {
+    const validChars = formData.username.split('').every(char =>
+      letters.includes(char.toLowerCase()) ||
+      numbers.includes(char)
+    )
+    return validChars && formData.username.trim().length >= 6
+  }, [formData.username])
+
+  // Validazione password
+  const isPasswordValid = useMemo(() => {
+    return (
+      formData.password.trim().length >= 8 &&
+      formData.password.split('').some(char => letters.includes(char)) &&
+      formData.password.split('').some(char => numbers.includes(char)) &&
+      formData.password.split('').some(char => symbols.includes(char))
+    )
+  }, [formData.password])
+
+  // Validazione description
+  const isDescriptionValid = useMemo(() => {
+    return (
+      formData.description.trim().length >= 100 &&
+      formData.description.trim().length <= 1000
+    )
+  }, [formData.description])
 
   // Funzione per il submit del form
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    // Valori dei campi non controllati
     const fullname = fullnameRef.current.value
     const specs = specsRef.current.value
     const experience = experienceRef.current.value
 
-    // Validazione
-    let newMessages = { ...messages }
-
-    // Variabile per capire se ci sono errori
-    let hasErrors = false
-
-    if (!fullname || fullname.trim() === '') {
-      newMessages.fullname = 'Full name is required'
-      hasErrors = true
-    } else {
-      newMessages.fullname = 'Full name is valid'
+    // Validazione form al submit
+    if (
+      !fullname.trim() ||
+      !formData.username.trim() ||
+      !formData.password.trim() ||
+      specs === 'Select specialization...' ||
+      !experience.trim() ||
+      experience < 0 ||
+      !formData.description.trim() ||
+      !isUsernameValid ||
+      !isPasswordValid ||
+      !isDescriptionValid
+    ) {
+      return
     }
-
-    if (experience < 0 || experience === '') {
-      newMessages.experience = 'Experience must be a positive number'
-      hasErrors = true
-    } else {
-      newMessages.experience = 'Experience is valid'
-    }
-
-    if (!specs || specs === 'Select specialization...') {
-      newMessages.specs = 'Please select a specialization'
-      hasErrors = true
-    } else {
-      newMessages.specs = 'Specialization is valid'
-    }
-
-    setMessages(newMessages)
-
-    // Se ci sono errori blocco il form
-    if (hasErrors) return
 
     console.log('Form submitted!', formData, fullname, specs, experience)
     // Resetto i campi controllati e non del form
@@ -131,8 +93,6 @@ export default function App() {
     fullnameRef.current.value = ''
     specsRef.current.value = 'Select specialization...'
     experienceRef.current.value = ''
-    // Resetto i messaggi delle validazioni
-    setMessages({})
   }
 
   // Funzione per il reset del form
@@ -142,7 +102,6 @@ export default function App() {
     fullnameRef.current.value = ''
     specsRef.current.value = 'Select specialization...'
     experienceRef.current.value = ''
-    setMessages({})
   }
 
   // Ref per la sezione
@@ -169,11 +128,6 @@ export default function App() {
               required
               ref={fullnameRef}
             />
-            {messages.fullname && (
-              <span className={messages.fullname.includes('valid') ? 'text-green-600' : 'text-red-500'}>
-                {messages.fullname}
-              </span>
-            )}
             <label className="text-gray-700" htmlFor="username">Username</label>
             <input
               type="text"
@@ -186,9 +140,9 @@ export default function App() {
               onChange={handleFormData}
               value={formData.username}
             />
-            {messages.username && (
-              <span className={messages.username.includes('valid') ? 'text-green-600' : 'text-red-500'}>
-                {messages.username}
+            {formData.username.trim() && (
+              <span className={isUsernameValid ? 'text-green-600' : 'text-red-500'}>
+                {isUsernameValid ? 'Username is valid' : 'Username must be without space and at least 8 alphanumeric characters'}
               </span>
             )}
             <label className="text-gray-700" htmlFor="password">Password</label>
@@ -202,9 +156,9 @@ export default function App() {
               onChange={handleFormData}
               value={formData.password}
             />
-            {messages.password && (
-              <span className={messages.password.includes('valid') ? 'text-green-600' : 'text-red-500'}>
-                {messages.password}
+            {formData.password.trim() && (
+              <span className={isPasswordValid ? 'text-green-600' : 'text-red-500'}>
+                {isPasswordValid ? 'Password is valid' : 'Password must be at least 8 characters, 1 letter, 1 number, 1 symbol'}
               </span>
             )}
             <div className="flex justify-between items-center my-3 gap-10">
@@ -230,23 +184,6 @@ export default function App() {
                 ref={experienceRef}
               />
             </div>
-            <div className="flex justify-between">
-              <span >
-                {messages.specs && (
-                  <span className={messages.specs.includes('valid') ? 'text-green-600' : 'text-red-500'}>
-                    {messages.specs}
-                  </span>
-                )}
-              </span>
-              <span >
-                {messages.experience && (
-                  <span className={messages.experience.includes('valid') ? 'text-green-600' : 'text-red-500'}>
-                    {messages.experience}
-                  </span>
-                )}
-              </span>
-            </div>
-
             <textarea
               className="text-gray-700 p-2 rounded-lg border border-emerald-900"
               placeholder="Describe yourself..."
@@ -258,9 +195,9 @@ export default function App() {
               value={formData.description}
               name="description">
             </textarea>
-            {messages.description && (
-              <span className={messages.description.includes('valid') ? 'text-green-600' : 'text-red-500'}>
-                {messages.description}
+            {formData.description.trim() && (
+              <span className={isDescriptionValid ? 'text-green-600' : 'text-red-500'}>
+                {isDescriptionValid ? 'Description is valid' : `Description must be between 100 and 1000 characters (${formData.description.trim().length})`}
               </span>
             )}
             <button
