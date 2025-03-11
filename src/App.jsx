@@ -1,11 +1,8 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 
 const initialFormData = {
-  fullname: '',
   username: '',
   password: '',
-  specs: '',
-  experience: '',
   description: ''
 }
 
@@ -22,6 +19,10 @@ export default function App() {
     experience: '',
     description: ''
   })
+
+  const fullnameRef = useRef()
+  const specsRef = useRef()
+  const experienceRef = useRef()
 
   // Funzione per collegare i change degli inputs
   const handleFormData = (e) => {
@@ -83,35 +84,50 @@ export default function App() {
   // Funzione per il submit del form
   const handleSubmit = (e) => {
     e.preventDefault()
-    const { fullname, username, password, specs, experience, description } = formData
+    const { username, password, description } = formData
+    const fullname = fullnameRef.current.value
+    const specs = specsRef.current.value
+    const experience = experienceRef.current.value
 
     // Validazione
-    if (!fullname || !username || !password || !specs || !description || experience === '') {
-      setMessages({
-        ...messages,
-        form: 'All fields must be completed'
-      })
-      return
+    let newMessages = { ...messages }
+
+    // Variabile per capire se ci sono errori
+    let hasErrors = false
+
+    if (!fullname || fullname.trim() === '') {
+      newMessages.fullname = 'Full name is required'
+      hasErrors = true
+    } else {
+      newMessages.fullname = 'Full name is valid'
     }
 
-    if (experience < 0) {
-      setMessages({
-        ...messages,
-        form: 'Experience must be a positive number'
-      })
-      return
+    if (experience < 0 || experience === '') {
+      newMessages.experience = 'Experience must be a positive number'
+      hasErrors = true
+    } else {
+      newMessages.experience = 'Experience is valid'
     }
 
-    if (specs === 'Select specialization...') {
-      setMessages({
-        ...messages,
-        form: 'Please select a specialization'
-      })
-      return
+    if (!specs || specs === 'Select specialization...') {
+      newMessages.specs = 'Please select a specialization'
+      hasErrors = true
+    } else {
+      newMessages.specs = 'Specialization is valid'
     }
 
-    console.log('Form submitted!', formData)
+    setMessages(newMessages)
+
+    // Se ci sono errori blocco il form
+    if (hasErrors) return
+
+    console.log('Form submitted!', formData, fullname, specs, experience)
+    // Resetto i campi controllati e non del form
     setFormData(initialFormData)
+    fullnameRef.current.value = ''
+    specsRef.current.value = 'Select specialization...'
+    experienceRef.current.value = ''
+    // Resetto i messaggi delle validazioni
     setMessages({})
   }
 
@@ -129,9 +145,13 @@ export default function App() {
               placeholder="Insert your full name..."
               className="p-2 rounded-lg border border-emerald-900"
               required
-              onChange={handleFormData}
-              value={formData.fullname}
+              ref={fullnameRef}
             />
+            {messages.fullname && (
+              <span className={messages.fullname.includes('valid') ? 'text-green-600' : 'text-red-500'}>
+                {messages.fullname}
+              </span>
+            )}
             <label className="text-gray-700" htmlFor="username">Username</label>
             <input
               type="text"
@@ -170,8 +190,7 @@ export default function App() {
                 name="specs"
                 className="p-2 rounded-lg border border-emerald-900 text-gray-700 grow"
                 required
-                onChange={handleFormData}
-                value={formData.specs}
+                ref={specsRef}
               >
                 <option>Select specialization...</option>
                 <option value="front-end">Frontend</option>
@@ -186,8 +205,7 @@ export default function App() {
                 className="p-2 rounded-lg border border-emerald-900"
                 required
                 min='0'
-                onChange={handleFormData}
-                value={formData.experience}
+                ref={experienceRef}
               />
             </div>
             <div className="flex justify-between">
